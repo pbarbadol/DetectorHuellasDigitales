@@ -10,6 +10,10 @@ public class FingerPrintImage {
     private int height;
     private char[][] img;
 
+    private char maxGrayValue;
+    private char minGrayValue;
+    private char midGrayValue;
+
     /**
      * Construye una nueva imagen de huella dactilar con las dimensiones especificadas.
      *
@@ -72,6 +76,30 @@ public class FingerPrintImage {
             throw new IllegalArgumentException("Las coordenadas del píxel están fuera de los límites.");
         }
         return img[x][y];
+    }
+
+    public char getMaxGrayValue() {
+        return maxGrayValue;
+    }
+
+    public void setMaxGrayValue(char maxGrayValue) {
+        this.maxGrayValue = maxGrayValue;
+    }
+
+    public char getMinGrayValue() {
+        return minGrayValue;
+    }
+
+    public void setMinGrayValue(char minGrayValue) {
+        this.minGrayValue = minGrayValue;
+    }
+
+    public char getMidGrayValue() {
+        return midGrayValue;
+    }
+
+    public void setMidGrayValue(char midGrayValue) {
+        this.midGrayValue = midGrayValue;
     }
 
 }

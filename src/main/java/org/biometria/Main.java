@@ -18,29 +18,32 @@ public class Main {
         String imagePath = args[0];  // Obtiene la ruta de la imagen desde los argumentos
 
         try {
-            // Mediante el método no ponderado
-            LOGGER.info("Iniciando el procesamiento de imágenes con método simple");
-            BufferedImage imagenEntradaA = ImageIO.read(new File(imagePath));
+            // Carga la imagen original desde el archivo
+            LOGGER.info("Cargando la imagen original");
+            BufferedImage imagenOriginal = ImageIO.read(new File(imagePath));
             LOGGER.info("Imagen cargada");
-            FingerPrintImage fingerPrintImageA = ImageUtils.convertirRGBaGris(imagenEntradaA, false);
-            LOGGER.info("Imagen convertida a escala de grises");
-            BufferedImage imagenSalida = ImageUtils.convertirAFomatoBufferedImage(fingerPrintImageA, 1);
-            LOGGER.info("Imagen convertida a BufferedImage");
-            File outputfileA = new File("imagenSalidaA.png");
-            ImageIO.write(imagenSalida, "png", outputfileA);
-            LOGGER.info("Imagen guardada en disco");
 
-            // Mediante el método ponderado
-            LOGGER.info("Iniciando el procesamiento de imágenes con método ponderado");
-            BufferedImage imagenEntradaB = ImageIO.read(new File(imagePath));  // Reutiliza el mismo archivo para ambos métodos
-            LOGGER.info("Imagen cargada");
-            FingerPrintImage fingerPrintImageB = ImageUtils.convertirRGBaGris(imagenEntradaB, true);
+            // Convierte la imagen original a escala de grises
+            LOGGER.info("Convirtiendo imagen a escala de grises");
+            FingerPrintImage imagenGris = ImageUtils.convertirRGBaGris(imagenOriginal, false);
             LOGGER.info("Imagen convertida a escala de grises");
-            imagenSalida = ImageUtils.convertirAFomatoBufferedImage(fingerPrintImageB, 1);
-            LOGGER.info("Imagen convertida a BufferedImage");
-            File outputfileB = new File("imagenSalidaB.png");
-            ImageIO.write(imagenSalida, "png", outputfileB);
-            LOGGER.info("Imagen guardada en disco");
+
+            // Guarda la imagen en escala de grises
+            BufferedImage imagenSalidaGris = ImageUtils.convertirAFomatoBufferedImage(imagenGris, 1);
+            File archivoSalidaGris = new File("imagenSalidaEscalaGrises.png");
+            ImageIO.write(imagenSalidaGris, "png", archivoSalidaGris);
+            LOGGER.info("Imagen en escala de grises guardada en disco");
+
+            // Aplica la ecualización de histograma a la imagen en escala de grises
+            LOGGER.info("Aplicando ecualización del histograma");
+            FingerPrintImage imagenEcualizada = ImageUtils.convertirGrisAHistograma(imagenGris);
+            LOGGER.info("Imagen ecualizada");
+
+            // Guarda la imagen ecualizada
+            BufferedImage imagenSalidaEcualizada = ImageUtils.convertirAFomatoBufferedImage(imagenEcualizada, 1);
+            File archivoSalidaEcualizada = new File("imagenSalidaEcualizada.png");
+            ImageIO.write(imagenSalidaEcualizada, "png", archivoSalidaEcualizada);
+            LOGGER.info("Imagen ecualizada guardada en disco");
 
             LOGGER.info("Procesamiento de imágenes finalizado");
 
