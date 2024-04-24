@@ -122,4 +122,70 @@ public class ImageUtils {
         }
         return imagenEcualizada;
     }
+
+    public static FingerPrintImage convertirABlancoYNegro(FingerPrintImage imagenGris) {
+        int width = imagenGris.getWidth();
+        int height = imagenGris.getHeight();
+        int valorMedio = imagenGris.getMidGrayValue();
+        FingerPrintImage imagenByN = new FingerPrintImage(width, height);
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                char valorPixel = imagenGris.getPixel(x, y);
+                char valorBinarizado;
+                // Aplica umbralización: si el valor del píxel es mayor que el medio, se convierte a blanco (1), si no, a negro (0)
+                if(valorPixel > valorMedio)
+                    valorBinarizado = 1;
+                else
+                    valorBinarizado = 0;
+                imagenByN.setPixel(x, y, valorBinarizado);
+            }
+        }
+        return imagenByN;
+    }
+
+    public static FingerPrintImage ruidoBinario1 (FingerPrintImage imagenByN){
+        int width = imagenByN.getWidth();
+        int height = imagenByN.getHeight();
+        FingerPrintImage imagenSinRuido = new FingerPrintImage(width, height);
+
+        for(int i = 1; i < width - 1; i++){ //Empezamos en 1 hasta width -1 para evitar los bordes
+            for(int j = 1; j < height - 1; j++){
+                char b = imagenByN.getPixel(i,j - 1);
+                char d = imagenByN.getPixel(i -1, j);
+                char e = imagenByN.getPixel(i + 1, j);
+                char g = imagenByN.getPixel(i, j + 1);
+                char p = imagenByN.getPixel(i,j);
+                char p_nuevo = (char) (p | b & g & (d | e) | d & e & (b | g));
+                //Insertamos pixel en la nueva imagen
+
+                imagenSinRuido.setPixel(i,j,p_nuevo);
+            }
+        }
+        return imagenSinRuido;
+    }
+
+    public static FingerPrintImage ruidoBinario2 (FingerPrintImage imagenByN){
+        int width = imagenByN.getWidth();
+        int height = imagenByN.getHeight();
+        FingerPrintImage imagenSinRuido = new FingerPrintImage(width, height);
+
+        for(int i = 1; i < width - 1; i++){ //Empezamos en 1 hasta width -1 para evitar los bordes
+            for(int j = 1; j < height - 1; j++){
+                char a = imagenByN.getPixel(i - 1, j - 1);
+                char b = imagenByN.getPixel(i,j - 1);
+                char c = imagenByN.getPixel(i + 1, j - 1);
+                char d = imagenByN.getPixel(i -1, j);
+                char e = imagenByN.getPixel(i + 1, j);
+                char f = imagenByN.getPixel(i - 1, j + 1);
+                char g = imagenByN.getPixel(i, j + 1);
+                char h = imagenByN.getPixel(i + 1, j + 1);
+                char p = imagenByN.getPixel(i,j);
+                char p_nuevo = (char) (p & ((a | b | d) & (e | g | h) | (b | c | e) & (d | f | g)));
+                //Insertamos pixel en la nueva imagen
+                imagenSinRuido.setPixel(i,j,p_nuevo);
+            }
+        }
+        return imagenSinRuido;
+    }
 }

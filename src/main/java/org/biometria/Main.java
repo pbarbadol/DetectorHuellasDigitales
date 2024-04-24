@@ -45,6 +45,27 @@ public class Main {
             ImageIO.write(imagenSalidaEcualizada, "png", archivoSalidaEcualizada);
             LOGGER.info("Imagen ecualizada guardada en disco");
 
+            // Binariza la imagen usando el valor medio como umbral
+            LOGGER.info("Binarizando la imagen");
+            FingerPrintImage imagenBinarizada = ImageUtils.convertirABlancoYNegro(imagenEcualizada);
+            LOGGER.info("Imagen binarizada");
+
+            // Aplica ruido binario 1
+            LOGGER.info("Aplicando ruido binario 1");
+            FingerPrintImage imagenConRuido1 = ImageUtils.ruidoBinario1(imagenBinarizada);
+            BufferedImage imagenSalidaRuido1 = ImageUtils.convertirAFomatoBufferedImage(imagenConRuido1, 0);
+            File archivoSalidaRuido1 = new File("imagenSalidaRuido1.png");
+            ImageIO.write(imagenSalidaRuido1, "png", archivoSalidaRuido1);
+            LOGGER.info("Imagen con ruido binario 1 guardada en disco");
+
+            // Aplica ruido binario 2
+            LOGGER.info("Aplicando ruido binario 2");
+            FingerPrintImage imagenConRuido2 = ImageUtils.ruidoBinario2(imagenBinarizada);
+            BufferedImage imagenSalidaRuido2 = ImageUtils.convertirAFomatoBufferedImage(imagenConRuido2, 0);
+            File archivoSalidaRuido2 = new File("imagenSalidaRuido2.png");
+            ImageIO.write(imagenSalidaRuido2, "png", archivoSalidaRuido2);
+            LOGGER.info("Imagen con ruido binario 2 guardada en disco");
+
             LOGGER.info("Procesamiento de imágenes finalizado");
 
         } catch (IOException e) {
