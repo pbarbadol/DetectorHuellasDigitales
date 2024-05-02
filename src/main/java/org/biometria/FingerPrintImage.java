@@ -31,6 +31,21 @@ public class FingerPrintImage {
     }
 
     /**
+     * Construye una nueva imagen de huella dactilar a partir de una imagen existente.
+     * @param img la imagen a copiar
+     */
+    public FingerPrintImage(FingerPrintImage img){
+        this.width = img.getWidth();
+        this.height = img.getHeight();
+        this.img = new char[width][height];
+        for(int i = 0; i < width; i++){
+            for(int j = 0; j < height; j++){
+                this.img[i][j] = img.getPixel(i, j);
+            }
+        }
+    }
+
+    /**
      * Devuelve la altura de la imagen.
      *
      * @return la altura de la imagen en píxeles.

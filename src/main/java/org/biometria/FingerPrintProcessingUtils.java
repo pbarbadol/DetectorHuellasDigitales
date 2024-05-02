@@ -1,15 +1,19 @@
 package org.biometria;
 
+import java.awt.Point;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 
-public class ImageUtils {
+public class FingerPrintProcessingUtils {
 
+    static final int BLANCO = 1;
+    static final int NEGRO = 0;
 
     /**
      * Convierte la imagen RGB a escala de grises utilizando el promedio simple de R, G, B.
      *
      * @param imagenEntrada La imagen de entrada en formato BufferedImage.
-     *
      * @return Una imagen en formato FingerPrintImage, en escala de grises.
      */
     public static FingerPrintImage convertirRGBaGris(BufferedImage imagenEntrada) {
@@ -21,7 +25,6 @@ public class ImageUtils {
      *
      * @param imagenEntrada La imagen de entrada en formato BufferedImage.
      * @param modoPonderado Si es true, utiliza un cálculo ponderado; si es false, utiliza el promedio simple.
-     *
      * @return Una imagen en formato FingerPrintImage, en escala de grises.
      */
     public static FingerPrintImage convertirRGBaGris(BufferedImage imagenEntrada, boolean modoPonderado) {
@@ -53,7 +56,7 @@ public class ImageUtils {
      * Convierte esta imagen de huella dactilar a un objeto BufferedImage.
      *
      * @param imagenEntrada La imagen de entrada en formato FingerPrintImage.
-     * @param modo Modo de conversión, si es 0 ajusta el brillo.
+     * @param modo          Modo de conversión, si es 0 ajusta el brillo.
      * @return Una imagen en formato BufferedImage.
      */
     public static BufferedImage convertirAFomatoBufferedImage(FingerPrintImage imagenEntrada, int modo) {
@@ -86,7 +89,7 @@ public class ImageUtils {
         //Calculamos frecuencia relativa de ocurrencia
         //de los distintos niveles de gris en la imagen
 
-        for(int x = 0; x < width; x++) {
+        for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) { //Recorremos la imagen
                 int valor = imagenEntrada.getPixel(x, y);
                 histograma[valor]++; //Almacenamos cuantas veces aparece dicho tono de gris
@@ -134,58 +137,173 @@ public class ImageUtils {
                 char valorPixel = imagenGris.getPixel(x, y);
                 char valorBinarizado;
                 // Aplica umbralización: si el valor del píxel es mayor que el medio, se convierte a blanco (1), si no, a negro (0)
-                if(valorPixel > valorMedio)
-                    valorBinarizado = 1;
-                else
-                    valorBinarizado = 0;
+                if (valorPixel > valorMedio) valorBinarizado = BLANCO;
+                else valorBinarizado = NEGRO;
                 imagenByN.setPixel(x, y, valorBinarizado);
             }
         }
         return imagenByN;
     }
 
-    public static FingerPrintImage ruidoBinario1 (FingerPrintImage imagenByN){
+    private static FingerPrintImage ruidoBinario1(FingerPrintImage imagenByN) {
         int width = imagenByN.getWidth();
         int height = imagenByN.getHeight();
         FingerPrintImage imagenSinRuido = new FingerPrintImage(width, height);
 
-        for(int i = 1; i < width - 1; i++){ //Empezamos en 1 hasta width -1 para evitar los bordes
-            for(int j = 1; j < height - 1; j++){
-                char b = imagenByN.getPixel(i,j - 1);
-                char d = imagenByN.getPixel(i -1, j);
+        for (int i = 1; i < width - 1; i++) { //Empezamos en 1 hasta width -1 para evitar los bordes
+            for (int j = 1; j < height - 1; j++) {
+                char b = imagenByN.getPixel(i, j - 1);
+                char d = imagenByN.getPixel(i - 1, j);
                 char e = imagenByN.getPixel(i + 1, j);
                 char g = imagenByN.getPixel(i, j + 1);
-                char p = imagenByN.getPixel(i,j);
+                char p = imagenByN.getPixel(i, j);
                 char p_nuevo = (char) (p | b & g & (d | e) | d & e & (b | g));
                 //Insertamos pixel en la nueva imagen
 
-                imagenSinRuido.setPixel(i,j,p_nuevo);
+                imagenSinRuido.setPixel(i, j, p_nuevo);
             }
         }
         return imagenSinRuido;
     }
 
-    public static FingerPrintImage ruidoBinario2 (FingerPrintImage imagenByN){
+    private static FingerPrintImage ruidoBinario2(FingerPrintImage imagenByN) {
         int width = imagenByN.getWidth();
         int height = imagenByN.getHeight();
         FingerPrintImage imagenSinRuido = new FingerPrintImage(width, height);
 
-        for(int i = 1; i < width - 1; i++){ //Empezamos en 1 hasta width -1 para evitar los bordes
-            for(int j = 1; j < height - 1; j++){
+        for (int i = 1; i < width - 1; i++) { //Empezamos en 1 hasta width -1 para evitar los bordes
+            for (int j = 1; j < height - 1; j++) {
                 char a = imagenByN.getPixel(i - 1, j - 1);
-                char b = imagenByN.getPixel(i,j - 1);
+                char b = imagenByN.getPixel(i, j - 1);
                 char c = imagenByN.getPixel(i + 1, j - 1);
-                char d = imagenByN.getPixel(i -1, j);
+                char d = imagenByN.getPixel(i - 1, j);
                 char e = imagenByN.getPixel(i + 1, j);
                 char f = imagenByN.getPixel(i - 1, j + 1);
                 char g = imagenByN.getPixel(i, j + 1);
                 char h = imagenByN.getPixel(i + 1, j + 1);
-                char p = imagenByN.getPixel(i,j);
+                char p = imagenByN.getPixel(i, j);
                 char p_nuevo = (char) (p & ((a | b | d) & (e | g | h) | (b | c | e) & (d | f | g)));
                 //Insertamos pixel en la nueva imagen
-                imagenSinRuido.setPixel(i,j,p_nuevo);
+                imagenSinRuido.setPixel(i, j, p_nuevo);
             }
         }
         return imagenSinRuido;
+    }
+
+    public static FingerPrintImage aplicarFiltroRuidoBinario(FingerPrintImage imagenByN) {
+        FingerPrintImage imagenSinRuido = ruidoBinario1(imagenByN);
+        imagenSinRuido = ruidoBinario2(imagenSinRuido);
+        return imagenSinRuido;
+    }
+
+    public static FingerPrintImage adelgazamientoZhangSuen(FingerPrintImage imagenByN) {
+        int width = imagenByN.getWidth();
+        int height = imagenByN.getHeight();
+        char[][] grid = new char[height][width];
+
+        // Convertir la imagen a una matriz de caracteres, donde '#' representa negro y ' ' blanco
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                grid[y][x] = imagenByN.getPixel(x, y) == NEGRO ? '#' : ' ';  // Asumimos que 0 es negro
+            }
+        }
+
+        boolean firstStep = false;
+        boolean hasChanged;
+
+        do {
+            hasChanged = false;
+            firstStep = !firstStep;
+
+            List<Point> toWhite = new ArrayList<Point>();
+
+            for (int r = 1; r < height - 1; r++) {
+                for (int c = 1; c < width - 1; c++) {
+                    //Pixel negro y tiene 8 vecinos
+                    if (grid[r][c] != '#') continue;
+                    //El numero de vecinos negro esta entre 2 y 6
+                    int nn = numNeighbors(grid, r, c);
+                    if (nn < 2 || nn > 6) continue;
+
+                    if (numTransitions(grid, r, c) != 1) continue;
+
+                    if (!atLeastOneIsWhite(grid, r, c, firstStep ? NEGRO : BLANCO)) continue;
+
+                    toWhite.add(new Point(c, r));
+                    hasChanged = true;
+                }
+            }
+
+            for (Point p : toWhite)
+                grid[p.y][p.x] = ' ';
+            toWhite.clear();
+
+        } while (firstStep || hasChanged);
+
+        // Convertir la matriz de caracteres de vuelta a FingerPrintImage
+        FingerPrintImage imagenResultante = new FingerPrintImage(width, height);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                imagenResultante.setPixel(x, y, grid[y][x] == '#' ? (char) BLANCO : (char) NEGRO);  // Set a negro o blanco
+            }
+        }
+        return imagenResultante;
+    }
+
+    /**
+     * Calcula el numero de vecinos negros que tiene el pixel
+     *
+     * @param grid la matriz
+     * @param r    row del pixel a evaluar
+     * @param c    column del pixel a evaluar
+     * @return el numero de pixeles negros vecinos
+     */
+    private static int numNeighbors(char[][] grid, int r, int c) {
+        int count = 0;
+        int[][] nbrs = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}};
+        for (int i = 0; i < nbrs.length; i++)
+            if (grid[r + nbrs[i][1]][c + nbrs[i][0]] == '#') count++;
+        return count;
+    }
+
+    /**
+     * Cuenta el numero de transicciones que hay entre los vecinos, de blanco ' ' a negro #
+     * @param grid matriz en ' ' y #
+     * @param r row del pixel central
+     * @param c column del pixel central
+     * @return el numero
+     */
+    private static int numTransitions(char[][] grid, int r, int c) {
+        int count = 0;
+        int[][] nbrs = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}};
+        for (int i = 0; i < nbrs.length - 1; i++)
+            if (grid[r + nbrs[i][1]][c + nbrs[i][0]] == ' ' && grid[r + nbrs[i + 1][1]][c + nbrs[i + 1][0]] == '#')
+                count++;
+        return count;
+    }
+
+    /**
+     * Comprueba que al menos un pixel de los grupos seleccionados sea blanco
+     * @param grid el vector
+     * @param r fila del pixel central
+     * @param c columna del pixel central
+     * @param step el paso en el que nos encontramos, permite seleccionar entre los dos conjuntos que a su vez están divididos en subconjuntos
+     * @return true si hay al menos un pixel blanco
+     */
+    private static boolean atLeastOneIsWhite(char[][] grid, int r, int c, int step) {
+        int[][] nbrs = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}};
+        int[][][] nbrGroups = {{{0, 2, 4}, {2, 4, 6}}, {{0, 2, 6}, {0, 4, 6}}}; //PASO 1: {P2, P4, P6}, {P4, P6, P8},// PASO 2:{P2, P4, P8}, {P2, P6, P8}
+        int count = 0;
+        for (int[] group : nbrGroups[step]) {
+            for (int nbrIdx : group) {
+                int[] nbr = nbrs[nbrIdx];
+                if (grid[r + nbr[1]][c + nbr[0]] == ' ') {
+                    count++;
+                    break;
+                }
+            }
+            if (count > 0) break;
+        }
+        return count > 0;
     }
 }
