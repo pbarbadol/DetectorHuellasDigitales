@@ -9,6 +9,11 @@ public class FingerPrintProcessingUtils {
 
     static final int BLANCO = 1;
     static final int NEGRO = 0;
+    final static int[][] nbrs = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1},
+            {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}};
+
+    final static int[][][] nbrGroups = {{{0, 2, 4}, {2, 4, 6}}, {{0, 2, 6},
+            {0, 4, 6}}};
 
     /**
      * Convierte la imagen RGB a escala de grises utilizando el promedio simple de R, G, B.
@@ -17,7 +22,7 @@ public class FingerPrintProcessingUtils {
      * @return Una imagen en formato FingerPrintImage, en escala de grises.
      */
     public static FingerPrintImage convertirRGBaGris(BufferedImage imagenEntrada) {
-        return convertirRGBaGris(imagenEntrada, false); // Llama al método sobrecargado con 'false' para promedio simple
+        return convertirRGBaGris(imagenEntrada, true); // Llama al método sobrecargado con 'false' para promedio simple
     }
 
     /**
@@ -94,17 +99,8 @@ public class FingerPrintProcessingUtils {
                 int valor = imagenEntrada.getPixel(x, y);
                 histograma[valor]++; //Almacenamos cuantas veces aparece dicho tono de gris
 
-                //Para el minimo maximo y medio
-                if (valor < minValor) minValor = valor;
-                if (valor > maxValor) maxValor = valor;
-                sumTotal += valor;
             }
         }
-
-        imagenEcualizada.setMaxGrayValue((char) maxValor);
-        imagenEcualizada.setMinGrayValue((char) minValor);
-        imagenEcualizada.setMidGrayValue((char) (sumTotal / tampixel));
-
         int sum = 0;
 
         //Construimos la Lookup table LUT
@@ -126,7 +122,29 @@ public class FingerPrintProcessingUtils {
         return imagenEcualizada;
     }
 
+    private static void calcularMaximoMinimoYMedio(FingerPrintImage imagenGris){
+        //Obtenemos el valor maximo y minimo
+        int width = imagenGris.getWidth();
+        int height = imagenGris.getHeight();
+        int maxValor = 0;
+        int minValor = 255;
+        int sumTotal = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) { //Recorremos la imagen
+                int valor = imagenGris.getPixel(x, y);
+                if (valor < minValor) minValor = valor;
+                if (valor > maxValor) maxValor = valor;
+                sumTotal += valor;
+            }
+        }
+        int valorMedio = sumTotal / (width * height);
+        imagenGris.setMaxGrayValue((char) maxValor);
+        imagenGris.setMinGrayValue((char) minValor);
+        imagenGris.setMidGrayValue((char) valorMedio);
+    }
+
     public static FingerPrintImage convertirABlancoYNegro(FingerPrintImage imagenGris) {
+        calcularMaximoMinimoYMedio(imagenGris);
         int width = imagenGris.getWidth();
         int height = imagenGris.getHeight();
         int valorMedio = imagenGris.getMidGrayValue();
@@ -220,14 +238,18 @@ public class FingerPrintProcessingUtils {
             for (int r = 1; r < height - 1; r++) {
                 for (int c = 1; c < width - 1; c++) {
                     //Pixel negro y tiene 8 vecinos
-                    if (grid[r][c] != '#') continue;
+                    if (grid[r][c] != '#')
+                        continue;
                     //El numero de vecinos negro esta entre 2 y 6
                     int nn = numNeighbors(grid, r, c);
-                    if (nn < 2 || nn > 6) continue;
+                    if (nn < 2 || nn > 6)
+                        continue;
 
-                    if (numTransitions(grid, r, c) != 1) continue;
+                    if (numTransitions(grid, r, c) != 1)
+                        continue;
 
-                    if (!atLeastOneIsWhite(grid, r, c, firstStep ? NEGRO : BLANCO)) continue;
+                    if (!atLeastOneIsWhite(grid, r, c, firstStep ? NEGRO : BLANCO))
+                        continue;
 
                     toWhite.add(new Point(c, r));
                     hasChanged = true;
@@ -260,9 +282,9 @@ public class FingerPrintProcessingUtils {
      */
     private static int numNeighbors(char[][] grid, int r, int c) {
         int count = 0;
-        int[][] nbrs = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}};
-        for (int i = 0; i < nbrs.length; i++)
-            if (grid[r + nbrs[i][1]][c + nbrs[i][0]] == '#') count++;
+        for (int i = 0; i < nbrs.length - 1; i++)
+            if (grid[r + nbrs[i][1]][c + nbrs[i][0]] == '#')
+                count++;
         return count;
     }
 
@@ -275,10 +297,11 @@ public class FingerPrintProcessingUtils {
      */
     private static int numTransitions(char[][] grid, int r, int c) {
         int count = 0;
-        int[][] nbrs = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}};
         for (int i = 0; i < nbrs.length - 1; i++)
-            if (grid[r + nbrs[i][1]][c + nbrs[i][0]] == ' ' && grid[r + nbrs[i + 1][1]][c + nbrs[i + 1][0]] == '#')
-                count++;
+            if (grid[r + nbrs[i][1]][c + nbrs[i][0]] == ' ') {
+                if (grid[r + nbrs[i + 1][1]][c + nbrs[i + 1][0]] == '#')
+                    count++;
+            }
         return count;
     }
 
@@ -291,19 +314,16 @@ public class FingerPrintProcessingUtils {
      * @return true si hay al menos un pixel blanco
      */
     private static boolean atLeastOneIsWhite(char[][] grid, int r, int c, int step) {
-        int[][] nbrs = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}};
-        int[][][] nbrGroups = {{{0, 2, 4}, {2, 4, 6}}, {{0, 2, 6}, {0, 4, 6}}}; //PASO 1: {P2, P4, P6}, {P4, P6, P8},// PASO 2:{P2, P4, P8}, {P2, P6, P8}
         int count = 0;
-        for (int[] group : nbrGroups[step]) {
-            for (int nbrIdx : group) {
-                int[] nbr = nbrs[nbrIdx];
+        int[][] group = nbrGroups[step];
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < group[i].length; j++) {
+                int[] nbr = nbrs[group[i][j]];
                 if (grid[r + nbr[1]][c + nbr[0]] == ' ') {
                     count++;
                     break;
                 }
             }
-            if (count > 0) break;
-        }
-        return count > 0;
+        return count > 1;
     }
 }
