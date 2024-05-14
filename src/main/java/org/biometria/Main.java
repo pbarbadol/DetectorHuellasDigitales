@@ -26,11 +26,11 @@ public class Main {
 
             // Convertimos la imagen original a escala de grises
             LOGGER.info("Convirtiendo imagen a escala de grises");
-            FingerPrintImage imagenGris = FingerPrintProcessingUtils.convertirRGBaGris(imagenOriginal, false);
+            FingerPrintImage imagenGris = ProcesamientoImagenUtils.convertirRGBaGris(imagenOriginal, false);
             LOGGER.info("Imagen convertida a escala de grises");
 
             // Guardamos la imagen en escala de grises
-            BufferedImage imagenSalidaGris = FingerPrintProcessingUtils.convertirAFomatoBufferedImage(imagenGris, 1);
+            BufferedImage imagenSalidaGris = ProcesamientoImagenUtils.convertirAFomatoBufferedImage(imagenGris, 1);
             File archivoSalidaGris = new File("imagenSalidaEscalaGrises.png");
             ImageIO.write(imagenSalidaGris, "png", archivoSalidaGris);
             LOGGER.info("Imagen en escala de grises guardada en disco");
@@ -40,11 +40,11 @@ public class Main {
             if (!saltarEcualizacion) {
                 // Aplicamos la ecualización de histograma a la imagen en escala de grises
                 LOGGER.info("Aplicando ecualización del histograma");
-                imagenParaBinarizar = FingerPrintProcessingUtils.convertirGrisAHistograma(imagenGris);
+                imagenParaBinarizar = ProcesamientoImagenUtils.convertirGrisAHistograma(imagenGris);
                 LOGGER.info("Imagen ecualizada");
 
                 // Guardamos la imagen ecualizada
-                BufferedImage imagenSalidaEcualizada = FingerPrintProcessingUtils.convertirAFomatoBufferedImage(imagenParaBinarizar, 1);
+                BufferedImage imagenSalidaEcualizada = ProcesamientoImagenUtils.convertirAFomatoBufferedImage(imagenParaBinarizar, 1);
                 File archivoSalidaEcualizada = new File("imagenSalidaEcualizada.png");
                 ImageIO.write(imagenSalidaEcualizada, "png", archivoSalidaEcualizada);
                 LOGGER.info("Imagen ecualizada guardada en disco");
@@ -53,38 +53,55 @@ public class Main {
 
             // Binarizamos la imagen usando el valor medio como umbral
             LOGGER.info("Binarizando la imagen");
-            FingerPrintImage imagenBinarizada = FingerPrintProcessingUtils.convertirABlancoYNegro(imagenParaBinarizar);
+            FingerPrintImage imagenBinarizada = ProcesamientoImagenUtils.convertirABlancoYNegro(imagenParaBinarizar);
             LOGGER.info("Imagen binarizada");
 
             // Guardamos la imagen binarizada
-            BufferedImage imagenSalidaBinarizada = FingerPrintProcessingUtils.convertirAFomatoBufferedImage(imagenBinarizada, 0);
+            BufferedImage imagenSalidaBinarizada = ProcesamientoImagenUtils.convertirAFomatoBufferedImage(imagenBinarizada, 0);
             File archivoSalidaBinarizada = new File("imagenSalidaBinarizada.png");
             ImageIO.write(imagenSalidaBinarizada, "png", archivoSalidaBinarizada);
             LOGGER.info("Imagen binarizada guardada en disco");
 
             // Aplicamos filtro para eliminar ruido binario
             LOGGER.info("Aplicando filtro para eliminar ruido");
-            FingerPrintImage imagenFiltrada = FingerPrintProcessingUtils.aplicarFiltroRuidoBinario(imagenBinarizada);
+            FingerPrintImage imagenFiltrada = TransformacionesImagenUtils.aplicarFiltroRuidoBinario(imagenBinarizada);
             LOGGER.info("Filtro para eliminar ruido aplicado");
 
             // Guardamos la imagen filtrada
-            BufferedImage imagenSalidaFiltrada = FingerPrintProcessingUtils.convertirAFomatoBufferedImage(imagenFiltrada, 0);
+            BufferedImage imagenSalidaFiltrada = ProcesamientoImagenUtils.convertirAFomatoBufferedImage(imagenFiltrada, 0);
             File archivoSalidaFiltrada = new File("imagenSalidaFiltrada.png");
             ImageIO.write(imagenSalidaFiltrada, "png", archivoSalidaFiltrada);
             LOGGER.info("Imagen filtrada guardada en disco");
 
             // Aplicamos adelgazamiento Zhang-Suen
             LOGGER.info("Aplicando adelgazamiento Zhang-Suen");
-            FingerPrintImage imagenAdelgazada = FingerPrintProcessingUtils.adelgazamientoZhangSuen(imagenFiltrada);
+            FingerPrintImage imagenAdelgazada = TransformacionesImagenUtils.adelgazamientoZhangSuen(imagenFiltrada);
             LOGGER.info("Adelgazamiento completado");
 
+            LOGGER.info("Aplicando detección de minucias");
+            MinutiaeDetectionUtils.crossingNumbers(imagenAdelgazada);
+            LOGGER.info("Detección de minucias completada");
+
             // Guardamos la imagen procesada final
-            BufferedImage imagenSalidaFinal = FingerPrintProcessingUtils.convertirAFomatoBufferedImage(imagenAdelgazada, 0);
+            BufferedImage imagenSalidaFinal = ProcesamientoImagenUtils.convertirAFomatoBufferedImage(imagenAdelgazada, 0);
+            MinutiaeDetectionUtils.marcarMinutiasEnBufferedImage(imagenSalidaFinal, imagenAdelgazada.getMinutiaeList());
             File archivoSalidaFinal = new File("imagenFinalProcesada.png");
             ImageIO.write(imagenSalidaFinal, "png", archivoSalidaFinal);
             LOGGER.info("Imagen final procesada guardada en disco");
 
             LOGGER.info("Procesamiento de imágenes finalizado");
+            System.out.println("Numero de pixeles de la imagen original: " + imagenGris.getWidth() * imagenGris.getHeight());
+            System.out.println("numero de minucias: " + imagenAdelgazada.getMinutiaeList().size());
+            //Numero de minucias tipo 0:
+            System.out.println("numero de minucias tipo 0: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 0).count());
+            //Numero de minucias tipo 1:
+            System.out.println("numero de minucias tipo 1: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 1).count());
+            //Numero de minucias tipo 2:
+            System.out.println("numero de minucias tipo 2: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 2).count());
+            //Numero de minucias tipo 3:
+            System.out.println("numero de minucias tipo 3: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 3).count());
+            //Numero de minucias tipo 4:
+            System.out.println("numero de minucias tipo 4: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 4).count());
 
         } catch (IOException e) {
             LOGGER.severe("Ocurrió un error al procesar las imágenes: " + e.getMessage());

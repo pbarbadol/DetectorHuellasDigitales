@@ -1,11 +1,15 @@
 package org.biometria;
 
+import java.util.List;
+
 /**
  * Representa una imagen de huella dactilar en escala de grises. Esta clase permite la creación
  * y manipulación básica de imágenes de huellas dactilares, como establecer y obtener el valor
  * de píxeles individuales.
  */
 public class FingerPrintImage {
+    static final int BLANCO = 1;
+    static final int NEGRO = 0;
     private int width;
     private int height;
     private char[][] img;
@@ -13,6 +17,9 @@ public class FingerPrintImage {
     private char maxGrayValue;
     private char minGrayValue;
     private char midGrayValue;
+
+    // Lista de minucias de la imagen
+    private List<Minutiae> minutiaeList;
 
     /**
      * Construye una nueva imagen de huella dactilar con las dimensiones especificadas.
@@ -43,6 +50,11 @@ public class FingerPrintImage {
                 this.img[i][j] = img.getPixel(i, j);
             }
         }
+        this.maxGrayValue = img.getMaxGrayValue();
+        this.minGrayValue = img.getMinGrayValue();
+        this.midGrayValue = img.getMidGrayValue();
+
+        this.minutiaeList = img.getMinutiaeList();
     }
 
     /**
@@ -117,4 +129,11 @@ public class FingerPrintImage {
         this.midGrayValue = midGrayValue;
     }
 
+    public List<Minutiae> getMinutiaeList() {
+        return minutiaeList;
+    }
+
+    public void setMinutiaeList(List<Minutiae> minutiaeList) {
+        this.minutiaeList = minutiaeList;
+    }
 }
