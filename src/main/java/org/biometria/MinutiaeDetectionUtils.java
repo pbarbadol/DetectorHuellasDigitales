@@ -7,152 +7,160 @@ import java.util.List;
 
 public class MinutiaeDetectionUtils {
     private static final int PROFUNDIDAD_REQUERIDA = 6;
-    public static void crossingNumbers(FingerPrintImage image) {
+    private static final int LINEA_LARGO = 15; // Longitud de las líneas de ángulo
+
+    // Método principal para detectar minucias
+    public static void detectarMinucias(FingerPrintImage image) {
+        List<Minutiae> minutiaeList = new ArrayList<>();
         int width = image.getWidth();
         int height = image.getHeight();
-        List<Minutiae> minutiaeList = new ArrayList<>();
 
+        // Recorre cada píxel de la imagen (excepto bordes)
         for (int i = 1; i < width - 1; i++) {
             for (int j = 1; j < height - 1; j++) {
-                int pixel = image.getPixel(i, j);
-                if (pixel == FingerPrintImage.BLANCO) {
-                    //Creamos ventana de vecindad
+                if (image.getPixel(i, j) == FingerPrintImage.BLANCO) {
                     int[] vecinos = obtenerVecinos(image, i, j);
-                    int crossingNumber = calcularCrossingParaVecinos(vecinos);
-                    if(crossingNumber == 1 ){
-                        Minutiae m = new CorteMinutiae(i, j, 0);
-                        minutiaeList.add(m);
-                    } else if(crossingNumber == 3){
-                        Minutiae m = new BifurcacionMinutiae(i, j, 0, 0, 0);
-                        minutiaeList.add(m);
+                    int crossingNumber = calcularCrossingNumber(vecinos);
+
+                    // Determina el tipo de minucia basado en el crossing number
+                    if (crossingNumber == 1) {
+                        minutiaeList.add(new CorteMinutiae(i, j, calcularAngulo(image, i, j)));
+                    } else if (crossingNumber == 3) {
+                        minutiaeList.add(new BifurcacionMinutiae(i, j, calcularAngulosBifurcacion(image, i, j)));
                     }
                 }
             }
         }
 
+        // Guarda la lista de minucias en la imagen y las imprime
         image.setMinutiaeList(minutiaeList);
+        imprimirMinucias(minutiaeList);
     }
 
+    // Obtiene los píxeles vecinos alrededor de un punto (fila, col)
     private static int[] obtenerVecinos(FingerPrintImage image, int fila, int col) {
-        int[] vecinos = new int[8];
-
-        vecinos[0] = image.getPixel(fila, col + 1);     // Este P1
-        vecinos[1] = image.getPixel(fila - 1, col + 1); // Noreste P2
-        vecinos[2] = image.getPixel(fila - 1, col);     // Norte P3
-        vecinos[3] = image.getPixel(fila - 1, col - 1);
-        vecinos[4] = image.getPixel(fila, col - 1);
-        vecinos[5] = image.getPixel(fila + 1, col - 1);
-        vecinos[6] = image.getPixel(fila + 1, col);
-        vecinos[7] = image.getPixel(fila + 1, col + 1);
-
-
-        return vecinos;
+        return new int[]{
+                image.getPixel(fila, col + 1),     // Este
+                image.getPixel(fila - 1, col + 1), // Noreste
+                image.getPixel(fila - 1, col),     // Norte
+                image.getPixel(fila - 1, col - 1), // Noroeste
+                image.getPixel(fila, col - 1),     // Oeste
+                image.getPixel(fila + 1, col - 1), // Suroeste
+                image.getPixel(fila + 1, col),     // Sur
+                image.getPixel(fila + 1, col + 1)  // Sureste
+        };
     }
 
-    private static int calcularCrossingParaVecinos(int[] vecinos){
+    // Calcula el crossing number para un conjunto de vecinos usando la fórmula proporcionada
+    private static int calcularCrossingNumber(int[] vecinos) {
         int sumaDeDiferencias = 0;
-        int numeroDeVecinos = vecinos.length;
-
-        for (int i = 0; i < numeroDeVecinos; i++) {
-            int vecinoActual = vecinos[i];
-            int vecinoSiguiente = vecinos[(i + 1) % numeroDeVecinos];
-            sumaDeDiferencias += Math.abs(vecinoActual - vecinoSiguiente);
+        for (int i = 0; i < vecinos.length; i++) {
+            sumaDeDiferencias += Math.abs(vecinos[i] - vecinos[(i + 1) % vecinos.length]);
         }
-
-        int contadorDeCruces = sumaDeDiferencias / 2;
-
-        if (contadorDeCruces == 1 || contadorDeCruces == 3){
-            System.out.println("Cruce detectado");
-        }
-        return contadorDeCruces;
+        return sumaDeDiferencias / 2;
     }
 
-    /**
-     * Marca las minucias en un BufferedImage existente.
-     *
-     * @param image La imagen en la que se marcarán las minucias.
-     * @param minutiaeList Lista de minucias a marcar.
-     */
-    public static void marcarMinutiasEnBufferedImage(BufferedImage image, List<Minutiae> minutiaeList) {
+    // Calcula el ángulo de una minucia de tipo terminación
+    private static Double calcularAngulo(FingerPrintImage image, int x, int y) {
+        for (int i = 0; i < 8; i++) {
+            List<Point> path = new ArrayList<>();
+            if (explorarCamino(image, x, y, i, path)) {
+                return calcularAnguloDesdeCamino(path);
+            }
+        }
+        return null;
+    }
+
+    // Calcula los tres ángulos de una minucia de tipo bifurcación
+    private static Double[] calcularAngulosBifurcacion(FingerPrintImage image, int x, int y) {
+        Double[] angulos = new Double[3];
+        int encontrado = 0;
+        for (int i = 0; i < 8 && encontrado < 3; i++) {
+            List<Point> path = new ArrayList<>();
+            if (explorarCamino(image, x, y, i, path)) {
+                angulos[encontrado++] = calcularAnguloDesdeCamino(path);
+            }
+        }
+        return angulos;
+    }
+
+    // Explora el camino desde una minucia en una dirección dada
+    private static boolean explorarCamino(FingerPrintImage image, int x, int y, int direccion, List<Point> path) {
+        int[] dx = {1, 1, 0, -1, -1, -1, 0, 1};
+        int[] dy = {0, 1, 1, 1, 0, -1, -1, -1};
+
+        for (int profundidad = 0; profundidad < PROFUNDIDAD_REQUERIDA; profundidad++) {
+            x += dx[direccion];
+            y += dy[direccion];
+            if (x < 0 || y < 0 || x >= image.getWidth() || y >= image.getHeight() || image.getPixel(x, y) != FingerPrintImage.BLANCO || path.contains(new Point(x, y))) {
+                return false;
+            }
+            path.add(new Point(x, y));
+        }
+        return true;
+    }
+
+    // Calcula el ángulo basado en el camino explorado
+    private static double calcularAnguloDesdeCamino(List<Point> path) {
+        Point first = path.get(0);
+        Point last = path.get(path.size() - 1);
+        double dx = last.x - first.x;
+        double dy = last.y - first.y;
+        return Math.toDegrees(Math.atan2(dy, dx));
+    }
+
+    // Imprime la información de las minucias detectadas
+    private static void imprimirMinucias(List<Minutiae> minutiaeList) {
+        for (Minutiae minutia : minutiaeList) {
+            System.out.printf("Minucia en (%d, %d) - Tipo: %d - Angulos: ", minutia.getX(), minutia.getY(), minutia.getType());
+            for (Double angulo : minutia.getAngles()) {
+                if (angulo != null) {
+                    System.out.printf("%.2f ", angulo);
+                } else {
+                    System.out.print("null ");
+                }
+            }
+            System.out.println();
+        }
+    }
+
+    // Marca las minucias en un BufferedImage existente
+    public static void marcarMinuciasEnBufferedImage(BufferedImage image, List<Minutiae> minutiaeList) {
+        int AZUL = 0x0000FF;
+        int ROJO = 0xFF0000;
         for (Minutiae minutia : minutiaeList) {
             int x = minutia.getX();
             int y = minutia.getY();
-            int tipo = minutia.getType();
-
-            // Define el color en función del tipo de minucia.
-            int colorRGB;
-            if (tipo == 1) { // Terminación, pintamos de rojo
-                colorRGB = 0xFF0000;
-            } else if (tipo == 3) { // Bifurcación, pintamos de azul
-                colorRGB = 0x0000FF;
-            } else {
-                continue; // Omitir si no es ninguno de los tipos esperados
-            }
-
+            int colorRGB = minutia.getType() == 1 ? ROJO : AZUL; // Rojo para terminación, azul para bifurcación
             if (x >= 0 && x < image.getWidth() && y >= 0 && y < image.getHeight()) {
                 image.setRGB(x, y, colorRGB);
             }
         }
     }
 
-    public void analizarMinucias(FingerPrintImage image) {
-        List<Minutiae> minutiaeList = image.getMinutiaeList();
-        for (Minutiae m : minutiaeList) {
-            int x = m.getX();
-            int y = m.getY();
-            explorarDesdeMinucia(image, x, y);
-        }
-    }
+    // Dibuja las líneas de los ángulos en un BufferedImage
+    public static void dibujarAngulosEnBufferedImage(BufferedImage image, List<Minutiae> minutiaeList) {
+        Graphics2D g = image.createGraphics();
+        g.setColor(Color.GREEN);
 
-    private void explorarDesdeMinucia(FingerPrintImage image, int x, int y) {
-        for (int i = 0; i < 8; i++) {
-            List<Point> path = new ArrayList<>();
-            if (avanzarVecino(image, x, y, i, 0, path) && path.size() == PROFUNDIDAD_REQUERIDA) {
-                calcularAngulo(image, path);
+        for (Minutiae minutia : minutiaeList) {
+            int x = minutia.getX();
+            int y = minutia.getY();
+            for (Double angulo : minutia.getAngles()) {
+                if (angulo != null) {
+                    double radianes = Math.toRadians(angulo);
+                    int endX = (int) (x + LINEA_LARGO * Math.cos(radianes));
+                    int endY = (int) (y + LINEA_LARGO * Math.sin(radianes));
+
+                    // Verifica que las coordenadas están dentro de los límites de la imagen
+                    if (endX >= 0 && endX < image.getWidth() && endY >= 0 && endY < image.getHeight()) {
+                        // Dibuja la línea del ángulo sin sobrescribir las minucias
+                        g.drawLine(x, y, endX, endY);
+                    }
+                }
             }
         }
+
+        g.dispose();
     }
-
-    private boolean avanzarVecino(FingerPrintImage image, int posX, int posY, int direccion, int profundidadActual, List<Point> path) {
-        if (profundidadActual >= PROFUNDIDAD_REQUERIDA || posX < 0 || posX >= image.getWidth() || posY < 0 || posY >= image.getHeight()) {
-            return false;
-        }
-
-        int pixel = image.getPixel(posX, posY);
-        if (pixel != 1 || path.contains(new Point(posX, posY))) {
-            return false;
-        }
-
-        path.add(new Point(posX, posY));
-        if (profundidadActual == PROFUNDIDAD_REQUERIDA - 1) {
-            return true;
-        }
-
-        int nuevoX = posX, nuevoY = posY;
-        switch (direccion) {
-            case 0: nuevoX += 1; break;
-            case 1: nuevoX += 1; nuevoY += 1; break;
-            case 2: nuevoY += 1; break;
-            case 3: nuevoX -= 1; nuevoY += 1; break;
-            case 4: nuevoX -= 1; break;
-            case 5: nuevoX -= 1; nuevoY -= 1; break;
-            case 6: nuevoY -= 1; break;
-            case 7: nuevoX += 1; nuevoY -= 1; break;
-        }
-        return avanzarVecino(image, nuevoX, nuevoY, direccion, profundidadActual + 1, path);
-    }
-
-    private void calcularAngulo(FingerPrintImage image, List<Point> path) {
-        Point first = path.get(0);
-        Point last = path.get(path.size() - 1);
-        double dx = last.x - first.x;
-        double dy = last.y - first.y;
-        double angle = Math.atan2(dy, dx);
-        angle = Math.toDegrees(angle); // Convertir a grados
-
-        // Aquí podrías implementar la lógica para marcar el ángulo o simplemente imprimirlo
-        System.out.println("Angulo calculado desde " + first + " hasta " + last + ": " + angle + " grados");
-    }
-
-
 }

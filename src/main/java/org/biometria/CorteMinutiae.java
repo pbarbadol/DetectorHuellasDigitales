@@ -1,15 +1,15 @@
 package org.biometria;
 
 public class CorteMinutiae extends Minutiae {
-    private int angle;
+    private final Double angle;
 
-    public CorteMinutiae(int x, int y, int angle) {
+    public CorteMinutiae(int x, int y, Double angle) {
         super(x, y, 1); // Tipo 1 para corte
         this.angle = angle;
     }
 
     @Override
-    public int[] getAngles() {
-        return new int[]{angle};
+    public Double[] getAngles() {
+        return new Double[]{angle};
     }
 }
