@@ -3,7 +3,9 @@ package org.biometria;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MinutiaeDetectionUtils {
     private static final int PROFUNDIDAD_REQUERIDA = 6;
@@ -61,75 +63,90 @@ public class MinutiaeDetectionUtils {
 
     // Calcula el ángulo de una minucia de tipo terminación
     private static Double calcularAnguloCorte(FingerPrintImage image, int x, int y) {
-        for (int i = 0; i < 8; i++) {
-            List<Point> path = new ArrayList<>();
-            if (explorarCamino(image, x, y, i, path)) {
-                return calcularAnguloDesdeCamino(path);
-            }
-        }
-        return null;
+        Set<Point> visitados = new HashSet<>();
+        List<Point> path = new ArrayList<>();
+        explorarCamino(image, x, y, path, visitados, 0);
+        return calcularAnguloDesdeCamino(path);
     }
 
     // Calcula los tres ángulos de una minucia de tipo bifurcación
     private static Double[] calcularAngulosBifurcacion(FingerPrintImage image, int x, int y) {
         Double[] angulos = new Double[3];
         int encontrado = 0;
+        Set<Point> visitados = new HashSet<>();
         for (int i = 0; i < 8 && encontrado < 3; i++) {
             List<Point> path = new ArrayList<>();
-            if (explorarCamino(image, x, y, i, path)) {
+            explorarCamino(image, x, y, path, visitados, 0);
+            if (path.size() >= PROFUNDIDAD_REQUERIDA) {
                 angulos[encontrado++] = calcularAnguloDesdeCamino(path);
             }
+        }
+        // Asigna ángulos restantes a 0 si no se encontraron 3 caminos
+        for (int i = encontrado; i < 3; i++) {
+            angulos[i] = 0.0;
         }
         return angulos;
     }
 
-    // Explora el camino desde una minucia en una dirección dada
-    private static boolean explorarCamino(FingerPrintImage image, int x, int y, int direccion, List<Point> path) {
+    // Explora el camino desde una minucia, permitiendo cualquier tipo de curvación
+    private static void explorarCamino(FingerPrintImage image, int x, int y, List<Point> path, Set<Point> visitados, int profundidad) {
+        // Verifica si se ha alcanzado la profundidad requerida
+        if (profundidad >= PROFUNDIDAD_REQUERIDA) {
+            return;
+        }
+
+        // Arrays para las direcciones en el plano (x, y)
         int[] dx = {1, 1, 0, -1, -1, -1, 0, 1};
         int[] dy = {0, 1, 1, 1, 0, -1, -1, -1};
 
-        boolean resultado = true; // Inicializamos el resultado como true
+        // Añade el punto actual a los visitados y al camino
+        visitados.add(new Point(x, y));
+        path.add(new Point(x, y));
 
-        // El bucle continúa mientras 'profundidad' sea menor que 'PROFUNDIDAD_REQUERIDA' y 'resultado' sea true
-        for (int profundidad = 0; (profundidad < PROFUNDIDAD_REQUERIDA) && resultado; profundidad++) {
-            x += dx[direccion];
-            y += dy[direccion];
+        // Explora en todas las direcciones posibles (8 direcciones)
+        for (int dir = 0; dir < 8; dir++) {
+            int nx = x + dx[dir];
+            int ny = y + dy[dir];
 
-            // Verificamos que las coordenadas estén dentro de los límites de la imagen
-            if (x >= 0 && y >= 0 && x < image.getWidth() && y < image.getHeight()) {
-                // Verificamos que el pixel sea blanco y que el punto no esté ya en el camino
-                if (image.getPixel(x, y) == FingerPrintImage.BLANCO && !path.contains(new Point(x, y))) {
-                    path.add(new Point(x, y)); // Añadimos el punto al camino
-                } else {
-                    resultado = false; // Si alguna condición no se cumple, establecemos 'resultado' a false
+            // Verifica si el nuevo punto está dentro de los límites de la imagen y no ha sido visitado
+            if (nx >= 0 && ny >= 0 && nx < image.getWidth() && ny < image.getHeight() &&
+                    image.getPixel(nx, ny) == FingerPrintImage.BLANCO && !visitados.contains(new Point(nx, ny))) {
+                // Llama recursivamente a explorarCamino para el nuevo punto
+                explorarCamino(image, nx, ny, path, visitados, profundidad + 1);
+                // Si se ha alcanzado la profundidad requerida, se detiene la exploración
+                if (path.size() >= PROFUNDIDAD_REQUERIDA) {
+                    return;
                 }
-            } else {
-                resultado = false; // Si las coordenadas están fuera de los límites, establecemos 'resultado' a false
             }
         }
-        return resultado; // Devolvemos el resultado final
     }
-
-
 
     // Calcula el ángulo basado en el camino explorado
     private static double calcularAnguloDesdeCamino(List<Point> path) {
+        // Si el camino tiene menos de 2 puntos, el ángulo es 0
+        if (path.size() < 2) return 0.0;
+        // Toma el primer y último punto del camino
         Point first = path.get(0);
         Point last = path.get(path.size() - 1);
+        // Calcula las diferencias en x y y
         double dx = last.x - first.x;
         double dy = last.y - first.y;
+        // Calcula y devuelve el ángulo en grados
         return Math.toDegrees(Math.atan2(dy, dx));
     }
 
     // Imprime la información de las minucias detectadas
     private static void imprimirMinucias(List<Minutiae> minutiaeList) {
         for (Minutiae minutia : minutiaeList) {
+            // Imprime la posición y el tipo de la minucia
             System.out.printf("Minucia en (%d, %d) - Tipo: %d - Angulos: ", minutia.getX(), minutia.getY(), minutia.getType());
+            // Imprime los ángulos detectados para la minucia
             for (Double angulo : minutia.getAngles()) {
                 if (angulo != null) {
                     System.out.printf("%.2f ", angulo);
                 } else {
-                    System.out.print("null ");
+                    // Imprime 0.00 para ángulos no detectados
+                    System.out.print("0.00 ");
                 }
             }
             System.out.println();
