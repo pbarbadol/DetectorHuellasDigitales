@@ -19,7 +19,7 @@ public abstract class Minutiae {
         return y;
     }
 
-    public abstract int[] getAngles();
+    public abstract Double[] getAngles();
 
     public int getType() {
         return type;

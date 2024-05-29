@@ -78,30 +78,32 @@ public class Main {
             FingerPrintImage imagenAdelgazada = TransformacionesImagenUtils.adelgazamientoZhangSuen(imagenFiltrada);
             LOGGER.info("Adelgazamiento completado");
 
+            // Guardamos la imagen adelgazada
+            BufferedImage imagenSalidaAdelgazada = ProcesamientoImagenUtils.convertirAFomatoBufferedImage(imagenAdelgazada, 0);
+            File archivoSalidaAdelgazada = new File("imagenSalidaAdelgazada.png");
+            ImageIO.write(imagenSalidaAdelgazada, "png", archivoSalidaAdelgazada);
+            LOGGER.info("Imagen adelgazada guardada en disco");
+
             LOGGER.info("Aplicando detección de minucias");
-            MinutiaeDetectionUtils.crossingNumbers(imagenAdelgazada);
+            MinutiaeDetectionUtils.detectarMinucias(imagenAdelgazada);
             LOGGER.info("Detección de minucias completada");
 
-            // Guardamos la imagen procesada final
-            BufferedImage imagenSalidaFinal = ProcesamientoImagenUtils.convertirAFomatoBufferedImage(imagenAdelgazada, 0);
-            MinutiaeDetectionUtils.marcarMinutiasEnBufferedImage(imagenSalidaFinal, imagenAdelgazada.getMinutiaeList());
-            File archivoSalidaFinal = new File("imagenFinalProcesada.png");
-            ImageIO.write(imagenSalidaFinal, "png", archivoSalidaFinal);
-            LOGGER.info("Imagen final procesada guardada en disco");
+            // Guardamos la imagen con las minucias marcadas
+            BufferedImage imagenMinuciasMarcadas = ProcesamientoImagenUtils.convertirAFomatoBufferedImage(imagenAdelgazada, 0);
+            MinutiaeDetectionUtils.marcarMinuciasEnBufferedImage(imagenMinuciasMarcadas, imagenAdelgazada.getMinutiaeList());
+            File archivoMinuciasMarcadas = new File("imagenMinuciasMarcadas.png");
+            ImageIO.write(imagenMinuciasMarcadas, "png", archivoMinuciasMarcadas);
+            LOGGER.info("Imagen minucias marcadas guardada en disco");
+
+            //Guardamos la imagen con los angulos marcados
+            MinutiaeDetectionUtils.dibujarAngulosEnBufferedImage(imagenMinuciasMarcadas, imagenAdelgazada.getMinutiaeList());
+            File archivoAngulosMarcados = new File("imagenAngulosMarcados.png");
+            ImageIO.write(imagenMinuciasMarcadas, "png", archivoAngulosMarcados);
+            LOGGER.info("Imagen angulos marcados guardada en disco");
+
 
             LOGGER.info("Procesamiento de imágenes finalizado");
-            System.out.println("Numero de pixeles de la imagen original: " + imagenGris.getWidth() * imagenGris.getHeight());
-            System.out.println("numero de minucias: " + imagenAdelgazada.getMinutiaeList().size());
-            //Numero de minucias tipo 0:
-            System.out.println("numero de minucias tipo 0: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 0).count());
-            //Numero de minucias tipo 1:
-            System.out.println("numero de minucias tipo 1: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 1).count());
-            //Numero de minucias tipo 2:
-            System.out.println("numero de minucias tipo 2: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 2).count());
-            //Numero de minucias tipo 3:
-            System.out.println("numero de minucias tipo 3: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 3).count());
-            //Numero de minucias tipo 4:
-            System.out.println("numero de minucias tipo 4: " + imagenAdelgazada.getMinutiaeList().stream().filter(minutiae -> minutiae.getType() == 4).count());
+
 
         } catch (IOException e) {
             LOGGER.severe("Ocurrió un error al procesar las imágenes: " + e.getMessage());
